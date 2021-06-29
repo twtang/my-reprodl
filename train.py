@@ -1,133 +1,16 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# ## Reproducible Deep Learning (PhD course, Data Science)
-# ### Lecture 1: deep learning recap
-
-# We will code a simple audio classification model (a convolutional neural network) for the ESC-50 dataset: https://github.com/karolpiczak/ESC-50. The aim is to recap some deep learning concepts, and have a working notebook to use as starting point for the next exercises.
-
-# **Setup the machine**:
-# 1. Follow the instructions from here: https://github.com/sscardapane/reprodl2021#local-set-up
-# 2. Download the ESC-50 dataset inside a 'data' folder.
-
-# In[ ]:
-
-
 import torch, torchaudio
 from torch import nn
 from torch.nn import functional as F
 
-
-# In[ ]:
-
-
 import pytorch_lightning as pl
 from pytorch_lightning.metrics import functional
-
-
-# In[ ]:
-
 
 from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
-
-
-# In[ ]:
-
-
-torch.cuda.is_available()
-
-
-# ### Step 1: Some experiments in audio loading and transformation
-
-# The code in this section is just for experimentation, and will be removed when porting to a script.
-
-# In[ ]:
-
-
-# Substitute this with your actual path. This is the root folder of ESC-50, where
-# you can find the subfolders 'audio' and 'meta'.
-datapath = Path('data/ESC-50')
-
-
-# In[ ]:
-
-
-datapath.exists()
-
-
-# In[ ]:
-
-
-# Using Path is fundamental to have reproducible code across different operating systems.
-csv = pd.read_csv(datapath / Path('meta/esc50.csv'))
-
-
-# In[ ]:
-
-
-# We need only filename, fold, and target
-csv.head()
-
-
-# In[ ]:
-
-
-# We can use torchaudio.load to load the file. The second value is the sampling rate of the file.
-x, sr = torchaudio.load(datapath / 'audio' / csv.iloc[0, 0], normalize=True)
-
-
-# In[ ]:
-
-
-x.shape
-
-
-# In[ ]:
-
-
-plt.plot(x[0, ::5])
-
-
-# In[ ]:
-
-
-# Useful transformation to resample the original file.
-torchaudio.transforms.Resample(orig_freq=sr, new_freq=8000)(x).shape
-
-
-# In[ ]:
-
-
-# Another useful transformation to build a Mel spectrogram (image-like), so that
-# we can apply any CNN on top of it.
-h = torchaudio.transforms.MelSpectrogram(sample_rate=sr)(x)
-
-
-# In[ ]:
-
-
-h.shape
-
-
-# In[ ]:
-
-
-# Convert to DB magnitude, useful for scaling.
-# Note: values could be further normalize to significantly speed-up and simplify training.
-h = torchaudio.transforms.AmplitudeToDB()(h)
-
-
-# In[ ]:
-
-
-plt.imshow(h[0])
-
-
-# ### Step 2: Putting together data loading and preprocessing
-
-# In[ ]:
 
 
 class ESC50Dataset(torch.utils.data.Dataset):
@@ -164,64 +47,6 @@ class ESC50Dataset(torch.utils.data.Dataset):
     def __len__(self):
         # Returns length
         return len(self.csv)
-
-
-# In[ ]:
-
-
-train_data = ESC50Dataset()
-
-
-# In[ ]:
-
-
-for xb, yb in train_data:
-    break
-
-
-# In[ ]:
-
-
-xb.shape
-
-
-# In[ ]:
-
-
-yb
-
-
-# ### Step 3: Build a classification model
-
-# In[ ]:
-
-
-# We use folds 1,2,3 for training, 4 for validation, 5 for testing.
-train_data = ESC50Dataset(folds=[1,2,3])
-val_data = ESC50Dataset(folds=[4])
-test_data = ESC50Dataset(folds=[5])
-
-
-# In[ ]:
-
-
-train_loader =     torch.utils.data.DataLoader(train_data, batch_size=8, shuffle=True)
-
-
-# In[ ]:
-
-
-val_loader = torch.utils.data.DataLoader(val_data, batch_size=8)
-
-
-# In[ ]:
-
-
-test_loader = torch.utils.data.DataLoader(test_data, batch_size=8)
-
-
-# In[ ]:
-
 
 class AudioNet(pl.LightningModule):
     
@@ -274,37 +99,26 @@ class AudioNet(pl.LightningModule):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
         return optimizer
 
+def train():
+    # This is the main training function requested by the exercise.
+    # We use folds 1,2,3 for training, 4 for validation, 5 for testing.
 
-# In[ ]:
+    # Load data
+    train_data = ESC50Dataset(folds=[1,2,3])
+    val_data = ESC50Dataset(folds=[4])
+    test_data = ESC50Dataset(folds=[5])
 
+    # Wrap data with appropriate data loaders
+    train_loader = torch.utils.data.DataLoader(train_data, batch_size=8, shuffle=True)
+    val_loader = torch.utils.data.DataLoader(val_data, batch_size=8)
+    test_loader = torch.utils.data.DataLoader(test_data, batch_size=8)
 
-pl.seed_everything(0)
+    pl.seed_everything(0)
 
+    # Initialize the network
+    audionet = AudioNet()
+    trainer = pl.Trainer(gpus=0, max_epochs=1)
+    trainer.fit(audionet, train_loader, val_loader)
 
-# In[ ]:
-
-
-# Test that the network works on a single mini-batch
-audionet = AudioNet()
-xb, yb = next(iter(train_loader))
-audionet(xb).shape
-
-
-# In[ ]:
-
-
-trainer = pl.Trainer(gpus=1, max_epochs=25)
-
-
-# In[ ]:
-
-
-trainer.fit(audionet, train_loader, val_loader)
-
-
-# In[ ]:
-
-
-# TODO: implement the test loop.
-trainer.test(audionet, test_loader)
-
+if __name__ == '__main__':
+    train()
