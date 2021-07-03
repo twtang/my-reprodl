@@ -14,7 +14,7 @@ FROM env
 COPY . ./
 
 # Install DVC
-RUN pip install dvc boto3 --ignore-installed ruamel.yaml
+RUN pip install 'dvc[s3]' boto3 --ignore-installed ruamel.yaml
 
 # Set the access keys
 ARG AWS_ACCESS_KEY_ID
