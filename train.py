@@ -160,6 +160,7 @@ def train(cfg: DictConfig):
     trainer = pl.Trainer(**cfg.trainer, logger=wandb_logger)
     trainer.fit(audionet, train_loader, val_loader)
 
+    torch.save(trainer.model.state_dict(), "model.pth")
 
 if __name__ == "__main__":
     train()
