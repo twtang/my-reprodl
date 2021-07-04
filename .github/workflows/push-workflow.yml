@@ -1,5 +1,8 @@
 name: push-workflow
-on: [push]
+on:
+  push:
+    branches:
+      - main
 jobs:
   build: # Build the environment
     runs-on: ubuntu-latest

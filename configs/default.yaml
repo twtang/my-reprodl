@@ -1,5 +1,35 @@
 seed: 0
 
+defaults:
+  - override hydra/job_logging: colorlog
+  - override hydra/hydra_logging: colorlog
+  - override hydra/sweeper: optuna
+  - override hydra/sweeper/sampler: tpe
+
+hydra:
+  sweeper:
+    sampler:
+      seed: 10
+    direction: maximize
+    study_name: train_with_optuna_support
+    storage: null
+    n_trials: 10
+    n_jobs: 1
+
+    search_space:
+      lr:
+        type: float
+        low: 1e-4
+        high: 1e-3
+        log: True
+
+      optimizer_name:
+        type: categorical
+        choices: ['SGD', 'Adam']
+
+lr: 3.e-4
+optimizer_name: 'Adam'
+
 data:
   path: "data/ESC-50"
   sample_rate: 8000
@@ -11,13 +41,8 @@ data:
 model:
   base_filters: 32
   n_classes: 50
-  optimizer:
-    lr: 3e-4
 
 trainer:
+  logger: True
   gpus: 1
-  max_epochs: 10
-
-# defaults:
-# - override hydra/job_logging: colorlog
-# - override hydra/hydra_logging: colorlog
+  max_epochs: 25
