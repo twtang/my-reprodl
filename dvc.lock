@@ -1,0 +1,8 @@
+schema: '2.0'
+stages:
+  train:
+    cmd: python train.py -o experiments-data/
+    deps:
+    - path: train.py
+      md5: 201b4e37c216f61badcb40d703c0d9a2
+      size: 4924
